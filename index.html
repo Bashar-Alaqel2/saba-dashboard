@@ -3,39 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة تحكم شاشات سبأ (Supabase)</title>
+    <title>لوحة تحكم شاشات سبأ (SabaPost)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background-color: #ecf0f1; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .main-card { max-width: 900px; margin: 40px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border: none; border-radius: 20px; overflow: hidden; }
-        .header { background: linear-gradient(135deg, #3ecf8e, #27ae60); color: white; padding: 30px; text-align: center; } /* لون Supabase الأخضر */
-        .btn-primary-custom { background-color: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 10px; }
-        .btn-primary-custom:hover { background-color: #219150; color: white; }
+        .header { background: linear-gradient(135deg, #880e4f, #ad1457); color: white; padding: 30px; text-align: center; }
+        .nav-tabs .nav-link { color: #880e4f; font-weight: bold; }
+        .nav-tabs .nav-link.active { color: #000; border-bottom: 3px solid #880e4f; }
+        .btn-primary-custom { background-color: #880e4f; color: white; border: none; padding: 10px 20px; border-radius: 10px; }
+        .btn-primary-custom:hover { background-color: #6a0b3d; color: white; }
         .preview-img { width: 80px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
+        .status-badge { font-size: 0.8em; padding: 5px 10px; border-radius: 15px; }
     </style>
 </head>
 <body>
 
 <div class="card main-card">
     <div class="header">
-        <h1>⚡ نظام شاشات سبأ (SQL)</h1>
-        <p class="mb-0">Powered by Supabase</p>
+        <h1>🖥️ نظام شاشات سبأ</h1>
+        <p class="mb-0">لوحة التحكم المركزية - SabaPost</p>
     </div>
     
     <div class="card-body p-4">
         
         <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
-            <li class="nav-item">
-                <button class="nav-link active text-success" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-pane">📤 رفع ملف</button>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-pane" type="button">📤 رفع ملف (من الجهاز)</button>
             </li>
-            <li class="nav-item">
-                <button class="nav-link text-success" id="link-tab" data-bs-toggle="tab" data-bs-target="#link-pane">🔗 رابط خارجي</button>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="link-tab" data-bs-toggle="tab" data-bs-target="#link-pane" type="button">🔗 رابط خارجي</button>
             </li>
         </ul>
 
-        <div class="tab-content mb-5">
-            <div class="tab-pane fade show active" id="upload-pane">
+        <div class="tab-content mb-5" id="myTabContent">
+            
+            <div class="tab-pane fade show active" id="upload-pane" role="tabpanel">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-7">
                         <label class="form-label">اختر صورة أو فيديو:</label>
@@ -49,17 +52,19 @@
                         <button onclick="uploadFile()" class="btn btn-primary-custom w-100" id="btnUpload">رفع 🚀</button>
                     </div>
                 </div>
-                <div id="uploadStatus" class="mt-2 text-center text-success fw-bold" style="display:none;"></div>
+                <div class="progress mt-3" id="progressContainer" style="display: none; height: 20px;">
+                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%">0%</div>
+                </div>
             </div>
 
-            <div class="tab-pane fade" id="link-pane">
+            <div class="tab-pane fade" id="link-pane" role="tabpanel">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-7">
-                        <label class="form-label">رابط مباشر:</label>
+                        <label class="form-label">لصق الرابط المباشر:</label>
                         <input type="text" id="urlInput" class="form-control" placeholder="https://example.com/image.jpg">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">المدة:</label>
+                        <label class="form-label">المدة (مللي ثانية):</label>
                         <input type="number" id="durationLink" class="form-control" value="5000">
                     </div>
                     <div class="col-md-2">
@@ -71,159 +76,159 @@
 
         <hr>
 
-        <h5 class="mb-3 text-secondary">📋 المحتوى الحالي (Live)</h5>
+        <h5 class="mb-3 text-secondary">📋 قائمة التشغيل الحالية</h5>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>المعاينة</th>
+                        <th>المحتوى</th>
                         <th>النوع</th>
                         <th>المدة</th>
                         <th>تحكم</th>
                     </tr>
                 </thead>
-                <tbody id="playlistTable"></tbody>
+                <tbody id="playlistTable">
+                    </tbody>
             </table>
-            <p id="emptyMsg" class="text-center text-muted">جاري تحميل البيانات...</p>
+            <div id="loadingMsg" class="text-center text-muted py-3">جاري الاتصال بالقاعدة...</div>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<script>
-    // 🔴🔴 هام جداً: ضع مفاتيح Supabase هنا 🔴🔴
-    const SUPABASE_URL = 'https://kyixbictachrbyhhxmyj.supabase.co'; // مثال: https://xyz.supabase.co
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt5aXhiaWN0YWNocmJ5aGh4bXlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxNjQwNTMsImV4cCI6MjA4NDc0MDA1M30.YNI2WonNj3W5WOJatOjvmEpx87KZrghTwg3oYHx_TpY'; // Anon Public Key
+<script type="module">
+  // استيراد المكتبات
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+  import { getDatabase, ref, push, set, onValue, remove } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+  import { getStorage, ref as sRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
 
-    // تهيئة الاتصال
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // إعدادات مشروعك (تم تعبئتها بناءً على الصور السابقة)
+  const firebaseConfig = {
+    apiKey: "AIzaSyCNIsI9vB3sVlXaAScG_U0qcqMBcodqOBI",
+    authDomain: "sabapost-c26e3.firebaseapp.com",
+    databaseURL: "https://sabapost-c26e3-default-rtdb.firebaseio.com",
+    projectId: "sabapost-c26e3",
+    storageBucket: "sabapost-c26e3.firebasestorage.app",
+    messagingSenderId: "516209922306",
+    appId: "1:516209922306:web:dc4f732a642267d872321b",
+    measurementId: "G-ZYFDG7N05G"
+  };
 
-    // --- 1. دالة الرفع ---
-    async function uploadFile() {
-        const fileInput = document.getElementById('fileInput');
-        const duration = document.getElementById('durationUpload').value;
-        const file = fileInput.files[0];
-        const btn = document.getElementById('btnUpload');
-        const status = document.getElementById('uploadStatus');
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const storage = getStorage(app);
+  const playlistRef = ref(db, 'playlist');
 
-        if (!file) { alert("اختر ملفاً أولاً!"); return; }
+  // --- دالة 1: رفع ملف من الجهاز ---
+  window.uploadFile = function() {
+      const fileInput = document.getElementById('fileInput');
+      const duration = document.getElementById('durationUpload').value;
+      const file = fileInput.files[0];
 
-        btn.disabled = true;
-        btn.innerText = "جاري الرفع...";
-        status.style.display = 'block';
-        status.innerText = "يتم رفع الملف للسحابة... ☁️";
+      if (!file) { alert("⚠️ يرجى اختيار ملف أولاً!"); return; }
 
-        try {
-            // اسم ملف فريد
-            const fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.]/g, '');
-            
-            // 1. الرفع للتخزين
-            const { data, error } = await supabase.storage.from('uploads').upload(fileName, file);
-            
-            if (error) throw error;
+      // إعداد واجهة الرفع
+      document.getElementById('progressContainer').style.display = 'block';
+      document.getElementById('btnUpload').disabled = true;
+      document.getElementById('btnUpload').innerText = "جاري الرفع...";
 
-            // 2. الحصول على الرابط العام
-            const { data: { publicUrl } } = supabase.storage.from('uploads').getDownloadUrl(fileName); // في بعض النسخ getPublicUrl
+      // إنشاء اسم فريد للملف
+      const storageRef = sRef(storage, 'uploads/' + Date.now() + '_' + file.name);
+      const uploadTask = uploadBytesResumable(storageRef, file);
 
-            // 3. تحديد النوع
-            const type = file.type.startsWith('video') ? 'video' : 'image';
-
-            // 4. الحفظ في الجدول
-            await insertToDB(publicUrl, type, duration);
-
-            status.innerText = "✅ تم الرفع بنجاح!";
-            fileInput.value = '';
-            setTimeout(() => status.style.display = 'none', 3000);
-
-        } catch (err) {
-            alert("خطأ: " + err.message);
-            status.innerText = "❌ فشل الرفع";
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "رفع 🚀";
-        }
-    }
-
-    // --- 2. إضافة رابط خارجي ---
-    async function addLink() {
-        const url = document.getElementById('urlInput').value;
-        const duration = document.getElementById('durationLink').value;
-        if(!url) return;
-
-        // تخمين النوع من الرابط
-        const type = (url.includes('.mp4') || url.includes('video')) ? 'video' : 'image';
-        
-        await insertToDB(url, type, duration);
-        document.getElementById('urlInput').value = '';
-        alert("تمت الإضافة");
-    }
-
-    // --- دالة الحفظ في قاعدة البيانات ---
-    async function insertToDB(url, type, duration) {
-        const { error } = await supabase.from('playlist').insert([
-            { media_url: url, media_type: type, duration: parseInt(duration) }
-        ]);
-        if (error) alert("خطأ في القاعدة: " + error.message);
-    }
-
-    // --- 3. دالة الحذف ---
-    async function deleteItem(id) {
-        if(!confirm("حذف هذا العنصر؟")) return;
-        const { error } = await supabase.from('playlist').delete().eq('id', id);
-        if (error) alert("خطأ: " + error.message);
-    }
-
-    // --- 4. جلب البيانات وعرضها (Realtime) ---
-    function renderTable(data) {
-        const tbody = document.getElementById('playlistTable');
-        const emptyMsg = document.getElementById('emptyMsg');
-        tbody.innerHTML = '';
-
-        if (data && data.length > 0) {
-            emptyMsg.style.display = 'none';
-            data.forEach(item => {
-                const isVideo = item.media_type === 'video';
-                const row = `
-                    <tr>
-                        <td>
-                            ${isVideo ? '🎬 فيديو' : `<a href="${item.media_url}" target="_blank"><img src="${item.media_url}" class="preview-img"></a>`}
-                        </td>
-                        <td>${item.media_type}</td>
-                        <td>${item.duration}</td>
-                        <td><button onclick="deleteItem(${item.id})" class="btn btn-sm btn-outline-danger">حذف</button></td>
-                    </tr>
-                `;
-                tbody.innerHTML += row;
+      uploadTask.on('state_changed',
+        (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            document.getElementById('progressBar').innerText = Math.round(progress) + '%';
+        },
+        (error) => {
+            alert("❌ فشل الرفع: " + error.message);
+            resetUploadForm();
+        },
+        () => {
+            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                saveToDatabase(downloadURL, duration);
+                resetUploadForm();
+                alert("✅ تم الرفع والإرسال بنجاح!");
             });
-        } else {
-            emptyMsg.style.display = 'block';
-            emptyMsg.innerText = "القائمة فارغة";
         }
-    }
+      );
+  }
 
-    // الاستماع للتغييرات (Live)
-    async function fetchAndSubscribe() {
-        // جلب مبدئي
-        const { data } = await supabase.from('playlist').select('*').order('id', { ascending: false });
-        renderTable(data);
+  function resetUploadForm() {
+      document.getElementById('fileInput').value = '';
+      document.getElementById('progressContainer').style.display = 'none';
+      document.getElementById('progressBar').style.width = '0%';
+      document.getElementById('btnUpload').disabled = false;
+      document.getElementById('btnUpload').innerText = "رفع 🚀";
+  }
 
-        // اشتراك في التغييرات
-        supabase.channel('custom-all-channel')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'playlist' },
-                (payload) => {
-                    // عند حدوث أي تغيير، نعيد جلب البيانات
-                    supabase.from('playlist').select('*').order('id', { ascending: false })
-                        .then(({ data }) => renderTable(data));
-                }
-            )
-            .subscribe();
-    }
+  // --- دالة 2: إضافة رابط خارجي ---
+  window.addLink = function() {
+      const url = document.getElementById('urlInput').value;
+      const duration = document.getElementById('durationLink').value;
 
-    fetchAndSubscribe();
+      if (!url) { alert("⚠️ يرجى لصق الرابط!"); return; }
+      
+      saveToDatabase(url, duration);
+      document.getElementById('urlInput').value = '';
+      alert("✅ تمت الإضافة!");
+  }
 
+  // --- دالة الحفظ في قاعدة البيانات ---
+  function saveToDatabase(url, duration) {
+      const newSlideRef = push(playlistRef);
+      set(newSlideRef, {
+          imageUrl: url,
+          duration: parseInt(duration)
+      });
+  }
+
+  // --- دالة الحذف ---
+  window.deleteSlide = function(key) {
+      if(confirm("هل أنت متأكد من حذف هذا العنصر؟")) {
+          remove(ref(db, 'playlist/' + key));
+      }
+  }
+
+  // --- عرض البيانات (Realtime) ---
+  onValue(playlistRef, (snapshot) => {
+      const tableBody = document.getElementById('playlistTable');
+      const loadingMsg = document.getElementById('loadingMsg');
+      tableBody.innerHTML = "";
+
+      if (snapshot.exists()) {
+          loadingMsg.style.display = "none";
+          snapshot.forEach((childSnapshot) => {
+              const key = childSnapshot.key;
+              const data = childSnapshot.val();
+              const isVideo = data.imageUrl.includes(".mp4") || data.imageUrl.includes("video") || data.imageUrl.includes("alt=media");
+              
+              const row = `
+                <tr>
+                    <td>
+                        ${isVideo ? 
+                          '<span class="badge bg-dark">🎥 فيديو</span>' : 
+                          `<a href="${data.imageUrl}" target="_blank"><img src="${data.imageUrl}" class="preview-img"></a>`
+                        }
+                    </td>
+                    <td>${isVideo ? 'فيديو' : 'صورة'}</td>
+                    <td>${data.duration} ms</td>
+                    <td>
+                        <button onclick="deleteSlide('${key}')" class="btn btn-sm btn-outline-danger">حذف 🗑️</button>
+                    </td>
+                </tr>
+              `;
+              tableBody.innerHTML += row;
+          });
+      } else {
+          loadingMsg.innerText = "لا يوجد محتوى حالياً... أضف شيئاً! ➕";
+          loadingMsg.style.display = "block";
+      }
+  });
 </script>
+
 </body>
 </html>
