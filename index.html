@@ -7,17 +7,14 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .main-card { max-width: 900px; margin: 40px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border: none; border-radius: 20px; overflow: hidden; }
+        .main-card { max-width: 1100px; margin: 40px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border: none; border-radius: 20px; overflow: hidden; }
         .header { background: linear-gradient(135deg, #880e4f, #ad1457); color: white; padding: 30px; text-align: center; }
         .nav-tabs .nav-link { color: #880e4f; font-weight: bold; }
         .nav-tabs .nav-link.active { color: #000; border-bottom: 3px solid #880e4f; }
         .btn-primary-custom { background-color: #880e4f; color: white; border: none; padding: 10px 20px; border-radius: 10px; }
-        .btn-primary-custom:hover { background-color: #6a0b3d; color: white; }
         .preview-img { width: 80px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
-        .status-badge { font-size: 0.8em; padding: 5px 10px; border-radius: 15px; }
-        /* تنسيق خاص لزر Vercel */
         .vercel-link { color: #000 !important; background-color: #f8f9fa; margin-right: 5px; border: 1px solid #dee2e6; border-bottom: none; }
-        .vercel-link:hover { background-color: #e2e6ea; }
+        .screen-row-pending { background-color: #fff3cd !important; }
     </style>
 </head>
 <body>
@@ -31,28 +28,39 @@
     <div class="card-body p-4">
         
         <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-pane" type="button">📤 رفع ملف (من الجهاز)</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="link-tab" data-bs-toggle="tab" data-bs-target="#link-pane" type="button">🔗 رابط خارجي</button>
-            </li>
-            <li class="nav-item ms-auto"> <a class="nav-link vercel-link" href="https://vercel.com/bashars-projects-d55b853e/~/stores/blob/store_vVFrsAUHJGVb8cWq/browser" target="_blank">
-                    🗂️ إدارة ملفات Vercel ↗
-                </a>
-            </li>
+            <li class="nav-item"><button class="nav-link active" id="screens-tab" data-bs-toggle="tab" data-bs-target="#screens-pane">📺 الشاشات</button></li>
+            <li class="nav-item"><button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-pane">📤 رفع ملف</button></li>
+            <li class="nav-item"><button class="nav-link" id="link-tab" data-bs-toggle="tab" data-bs-target="#link-pane">🔗 رابط خارجي</button></li>
+            <li class="nav-item ms-auto"> <a class="nav-link vercel-link" href="https://vercel.com/bashars-projects-d55b853e/~/stores/blob/store_vVFrsAUHJGVb8cWq/browser" target="_blank">🗂️ ملفات Vercel ↗</a></li>
         </ul>
 
         <div class="tab-content mb-5" id="myTabContent">
             
-            <div class="tab-pane fade show active" id="upload-pane" role="tabpanel">
+            <div class="tab-pane fade show active" id="screens-pane">
+                <h5 class="mb-3 text-secondary">الأجهزة المتصلة</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle text-center">
+                        <thead class="table-light"><tr><th>الحالة</th><th style="width: 30%;">اسم الجهاز</th><th>IP Address</th><th>كود الجهاز (ID)</th><th>إجراءات</th></tr></thead>
+                        <tbody id="screensTable"></tbody>
+                    </table>
+                    <div id="loadingScreens" class="text-center text-muted">جاري البحث...</div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="upload-pane">
                 <div class="row g-3 align-items-end">
+                    <div class="col-md-12 mb-2">
+                        <label class="form-label fw-bold text-danger">عرض في:</label>
+                        <select id="targetScreenUpload" class="form-select border-danger">
+                            <option value="all">🌍 كل الشاشات (افتراضي)</option>
+                        </select>
+                    </div>
                     <div class="col-md-7">
-                        <label class="form-label">اختر صورة أو فيديو:</label>
+                        <label class="form-label">اختر الملف:</label>
                         <input type="file" id="fileInput" class="form-control" accept="image/*,video/*">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">المدة (مللي ثانية):</label>
+                        <label class="form-label">المدة (ms):</label>
                         <input type="number" id="durationUpload" class="form-control" value="5000">
                     </div>
                     <div class="col-md-2">
@@ -60,18 +68,24 @@
                     </div>
                 </div>
                 <div class="progress mt-3" id="progressContainer" style="display: none; height: 20px;">
-                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%">0%</div>
+                    <div id="progressBar" class="progress-bar bg-success" style="width: 0%">0%</div>
                 </div>
             </div>
 
-            <div class="tab-pane fade" id="link-pane" role="tabpanel">
+            <div class="tab-pane fade" id="link-pane">
                 <div class="row g-3 align-items-end">
+                    <div class="col-md-12 mb-2">
+                        <label class="form-label fw-bold text-danger">عرض في:</label>
+                        <select id="targetScreenLink" class="form-select border-danger">
+                            <option value="all">🌍 كل الشاشات (افتراضي)</option>
+                        </select>
+                    </div>
                     <div class="col-md-7">
-                        <label class="form-label">لصق الرابط المباشر:</label>
+                        <label class="form-label">الرابط:</label>
                         <input type="text" id="urlInput" class="form-control" placeholder="https://example.com/image.jpg">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">المدة (مللي ثانية):</label>
+                        <label class="form-label">المدة (ms):</label>
                         <input type="number" id="durationLink" class="form-control" value="5000">
                     </div>
                     <div class="col-md-2">
@@ -83,7 +97,7 @@
 
         <hr>
 
-        <h5 class="mb-3 text-secondary">📋 قائمة التشغيل الحالية</h5>
+        <h5 class="mb-3 text-secondary">📋 قائمة التشغيل النشطة</h5>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead class="table-light">
@@ -91,26 +105,22 @@
                         <th>المحتوى</th>
                         <th>النوع</th>
                         <th>المدة</th>
-                        <th>تحكم</th>
+                        <th>موجه إلى 🎯</th> <th>تحكم</th>
                     </tr>
                 </thead>
-                <tbody id="playlistTable">
-                    </tbody>
+                <tbody id="playlistTable"></tbody>
             </table>
-            <div id="loadingMsg" class="text-center text-muted py-3">جاري الاتصال بالقاعدة...</div>
+            <div id="loadingMsg" class="text-center text-muted py-3">جاري الاتصال...</div>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script type="module">
-  // استيراد المكتبات
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-  import { getDatabase, ref, push, set, onValue, remove } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+  import { getDatabase, ref, push, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
   import { getStorage, ref as sRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
 
-  // إعدادات مشروعك
   const firebaseConfig = {
     apiKey: "AIzaSyCNIsI9vB3sVlXaAScG_U0qcqMBcodqOBI",
     authDomain: "sabapost-c26e3.firebaseapp.com",
@@ -125,22 +135,98 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
   const storage = getStorage(app);
+  
   const playlistRef = ref(db, 'playlist');
+  const screensRef = ref(db, 'screens');
 
-  // --- دالة 1: رفع ملف من الجهاز ---
+  // متغير لتخزين أسماء الشاشات للرجوع إليها
+  let screenNamesMap = {};
+
+  // ==========================================
+  // إدارة الشاشات وتحديث القوائم المنسدلة
+  // ==========================================
+  
+  onValue(screensRef, (snapshot) => {
+      const screensTable = document.getElementById('screensTable');
+      const selectUpload = document.getElementById('targetScreenUpload');
+      const selectLink = document.getElementById('targetScreenLink');
+      
+      document.getElementById('loadingScreens').style.display = 'none';
+      screensTable.innerHTML = "";
+      
+      // إعادة تعيين القوائم المنسدلة
+      selectUpload.innerHTML = '<option value="all">🌍 كل الشاشات (افتراضي)</option>';
+      selectLink.innerHTML = '<option value="all">🌍 كل الشاشات (افتراضي)</option>';
+      screenNamesMap = {};
+
+      if (snapshot.exists()) {
+          snapshot.forEach((childSnapshot) => {
+              const id = childSnapshot.key;
+              const data = childSnapshot.val();
+              const isPending = data.status === 'pending';
+              const screenName = data.name || 'بدون اسم';
+              
+              // تخزين الاسم للخريطة
+              screenNamesMap[id] = screenName;
+
+              // تحديث جدول الشاشات
+              let statusBadge = isPending ? '<span class="badge bg-warning text-dark">⏳ انتظار</span>' : '<span class="badge bg-success">✅ متصل</span>';
+              let rowClass = isPending ? 'screen-row-pending' : '';
+              let actionBtn = isPending
+                  ? `<button onclick="approveScreen('${id}')" class="btn btn-sm btn-success">تفعيل</button>`
+                  : `<button onclick="deleteScreen('${id}')" class="btn btn-sm btn-outline-danger">فصل</button>`;
+
+              screensTable.innerHTML += `
+                <tr class="${rowClass}">
+                    <td>${statusBadge}</td>
+                    <td>
+                        <div class="input-group input-group-sm" style="max-width: 250px; margin: 0 auto;">
+                            <input type="text" id="name-${id}" class="form-control" value="${screenName}" placeholder="اكتب اسم الشاشة">
+                            <button class="btn btn-outline-primary" onclick="updateScreenName('${id}')">💾</button>
+                        </div>
+                    </td>
+                    <td dir="ltr">${data.ip || '---'}</td>
+                    <td><small class="text-muted">${id}</small></td>
+                    <td>${actionBtn} ${isPending ? `<button onclick="deleteScreen('${id}')" class="btn btn-sm btn-outline-danger ms-1">رفض</button>` : ''}</td>
+                </tr>
+              `;
+
+              // تحديث قوائم الاختيار (فقط للشاشات المفعلة)
+              if (!isPending) {
+                  const optionText = `📺 ${screenName}`;
+                  selectUpload.innerHTML += `<option value="${id}">${optionText}</option>`;
+                  selectLink.innerHTML += `<option value="${id}">${optionText}</option>`;
+              }
+          });
+      } else {
+          document.getElementById('loadingScreens').style.display = 'block';
+          document.getElementById('loadingScreens').innerText = "لا توجد شاشات متصلة حالياً";
+      }
+  });
+
+  window.approveScreen = (id) => update(ref(db, 'screens/' + id), { status: 'linked' });
+  window.deleteScreen = (id) => { if(confirm("تأكيد الحذف؟")) remove(ref(db, 'screens/' + id)); };
+  window.updateScreenName = (id) => {
+      const newName = document.getElementById(`name-${id}`).value;
+      if (newName.trim() !== "") update(ref(db, 'screens/' + id), { name: newName });
+  };
+
+  // ==========================================
+  // الرفع والإضافة (مع دعم تحديد الشاشة)
+  // ==========================================
+
   window.uploadFile = function() {
       const fileInput = document.getElementById('fileInput');
       const duration = document.getElementById('durationUpload').value;
+      const targetScreen = document.getElementById('targetScreenUpload').value; // ✅ الهدف
       const file = fileInput.files[0];
 
-      if (!file) { alert("⚠️ يرجى اختيار ملف أولاً!"); return; }
+      if (!file) { alert("⚠️ اختر ملفاً!"); return; }
 
-      // إعداد واجهة الرفع
       document.getElementById('progressContainer').style.display = 'block';
       document.getElementById('btnUpload').disabled = true;
       document.getElementById('btnUpload').innerText = "جاري الرفع...";
 
-      // إنشاء اسم فريد للملف
       const storageRef = sRef(storage, 'uploads/' + Date.now() + '_' + file.name);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -148,17 +234,13 @@
         (snapshot) => {
             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
             document.getElementById('progressBar').style.width = progress + '%';
-            document.getElementById('progressBar').innerText = Math.round(progress) + '%';
         },
-        (error) => {
-            alert("❌ فشل الرفع: " + error.message);
-            resetUploadForm();
-        },
+        (error) => { alert("❌ خطأ: " + error.message); resetUploadForm(); },
         () => {
             getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                saveToDatabase(downloadURL, duration);
+                saveToDatabase(downloadURL, duration, targetScreen); // ✅ تمرير الهدف
                 resetUploadForm();
-                alert("✅ تم الرفع والإرسال بنجاح!");
+                alert("✅ تم!");
             });
         }
       );
@@ -172,35 +254,32 @@
       document.getElementById('btnUpload').innerText = "رفع 🚀";
   }
 
-  // --- دالة 2: إضافة رابط خارجي ---
   window.addLink = function() {
       const url = document.getElementById('urlInput').value;
       const duration = document.getElementById('durationLink').value;
+      const targetScreen = document.getElementById('targetScreenLink').value; // ✅ الهدف
 
-      if (!url) { alert("⚠️ يرجى لصق الرابط!"); return; }
-      
-      saveToDatabase(url, duration);
+      if (!url) { alert("⚠️ ضع رابطاً!"); return; }
+      saveToDatabase(url, duration, targetScreen); // ✅ تمرير الهدف
       document.getElementById('urlInput').value = '';
-      alert("✅ تمت الإضافة!");
+      alert("✅ تم!");
   }
 
-  // --- دالة الحفظ في قاعدة البيانات ---
-  function saveToDatabase(url, duration) {
-      const newSlideRef = push(playlistRef);
-      set(newSlideRef, {
-          imageUrl: url,
-          duration: parseInt(duration)
+  // ✅ دالة الحفظ المحدثة
+  function saveToDatabase(url, duration, target) {
+      push(playlistRef, { 
+          imageUrl: url, 
+          duration: parseInt(duration),
+          targetScreenId: target // ✅ حفظ وجهة العرض
       });
   }
 
-  // --- دالة الحذف ---
-  window.deleteSlide = function(key) {
-      if(confirm("هل أنت متأكد من حذف هذا العنصر؟")) {
-          remove(ref(db, 'playlist/' + key));
-      }
-  }
+  window.deleteSlide = (key) => { if(confirm("حذف؟")) remove(ref(db, 'playlist/' + key)); };
 
-  // --- عرض البيانات (Realtime) ---
+  // ==========================================
+  // عرض قائمة التشغيل
+  // ==========================================
+
   onValue(playlistRef, (snapshot) => {
       const tableBody = document.getElementById('playlistTable');
       const loadingMsg = document.getElementById('loadingMsg');
@@ -211,27 +290,28 @@
           snapshot.forEach((childSnapshot) => {
               const key = childSnapshot.key;
               const data = childSnapshot.val();
-              const isVideo = data.imageUrl.includes(".mp4") || data.imageUrl.includes("video") || data.imageUrl.includes("alt=media");
+              const isVideo = data.imageUrl.includes(".mp4") || data.imageUrl.includes("video");
               
+              // ✅ تحديد اسم الشاشة المستهدفة
+              let targetName = "🌍 الكل";
+              if (data.targetScreenId && data.targetScreenId !== 'all') {
+                  // جلب الاسم من الخريطة، أو استخدام الكود إذا لم يوجد اسم
+                  targetName = `📺 ${screenNamesMap[data.targetScreenId] || 'شاشة محذوفة'}`;
+              }
+
               const row = `
                 <tr>
-                    <td>
-                        ${isVideo ? 
-                          '<span class="badge bg-dark">🎥 فيديو</span>' : 
-                          `<a href="${data.imageUrl}" target="_blank"><img src="${data.imageUrl}" class="preview-img"></a>`
-                        }
-                    </td>
+                    <td>${isVideo ? '<span class="badge bg-dark">🎥 فيديو</span>' : `<a href="${data.imageUrl}" target="_blank"><img src="${data.imageUrl}" class="preview-img"></a>`}</td>
                     <td>${isVideo ? 'فيديو' : 'صورة'}</td>
                     <td>${data.duration} ms</td>
-                    <td>
-                        <button onclick="deleteSlide('${key}')" class="btn btn-sm btn-outline-danger">حذف 🗑️</button>
-                    </td>
+                    <td><span class="badge ${data.targetScreenId !== 'all' ? 'bg-info text-dark' : 'bg-secondary'}">${targetName}</span></td>
+                    <td><button onclick="deleteSlide('${key}')" class="btn btn-sm btn-outline-danger">حذف 🗑️</button></td>
                 </tr>
               `;
               tableBody.innerHTML += row;
           });
       } else {
-          loadingMsg.innerText = "لا يوجد محتوى حالياً... أضف شيئاً! ➕";
+          loadingMsg.innerText = "القائمة فارغة";
           loadingMsg.style.display = "block";
       }
   });
