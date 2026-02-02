@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم شاشات سبأ</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; margin: 0; }
+        .container { max-width: 1200px; margin: auto; }
+        h1 { color: #880E4F; text-align: center; margin-bottom: 30px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; color: #333; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: right; }
+        th { background: #fafafa; color: #666; font-weight: 600; }
+        
+        button { cursor: pointer; padding: 8px 16px; border-radius: 6px; border: none; font-weight: bold; transition: 0.2s; }
+        .btn-approve { background: #4CAF50; color: white; }
+        .btn-approve:hover { background: #45a049; }
+        .btn-delete { background: #ff5252; color: white; }
+        .btn-delete:hover { background: #ff1744; }
+        .btn-upload { background: #2196F3; color: white; width: 100%; padding: 12px; font-size: 16px; margin-top: 10px; }
+        
+        input, select { padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.9em; }
+        .status-pending { background: #fff3e0; color: #e65100; }
+        .status-linked { background: #e8f5e9; color: #2e7d32; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📡 نظام إدارة شاشات سبأ</h1>
+
+    <div class="card">
+        <h2>🖥️ الشاشات المتصلة</h2>
+        <table id="screensTable">
+            <thead>
+                <tr>
+                    <th>معرف الجهاز (ID)</th>
+                    <th>IP</th>
+                    <th>الحالة</th>
+                    <th>آخر اتصال</th>
+                    <th>إجراءات</th>
+                </tr>
+            </thead>
+            <tbody id="screensList"></tbody>
+        </table>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>📤 رفع محتوى جديد</h2>
+            <input type="file" id="fileInput" accept="image/*,video/*">
+            <select id="fileType">
+                <option value="video">فيديو (MP4)</option>
+                <option value="image">صورة (JPG/PNG)</option>
+            </select>
+            <input type="number" id="duration" placeholder="مدة العرض (للصور بالمللي ثانية)" value="5000">
+            <select id="targetScreen">
+                <option value="all">عرض على كل الشاشات</option>
+            </select>
+            <button class="btn-upload" onclick="uploadContent()">رفع ونشر 🚀</button>
+            <p id="uploadStatus" style="text-align: center; margin-top: 10px; color: #666;"></p>
+        </div>
+
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>📢 شريط الأخبار العاجلة</h2>
+                <label style="cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="tickerToggle" onchange="toggleTickerVisibility()" style="width: 20px; height: 20px;">
+                    إظهار الشريط
+                </label>
+            </div>
+            
+            <textarea id="newsInput" rows="3" style="width:100%; resize:none; padding:10px;" placeholder="اكتب الخبر هنا..."></textarea>
+            <button class="btn-upload" style="background: #FF9800;" onclick="updateTicker()">تحديث النص 📝</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>playlist قائمة العرض الحالية</h2>
+        <table id="playlistTable">
+            <thead>
+                <tr>
+                    <th>النوع</th>
+                    <th>الرابط / المعاينة</th>
+                    <th>موجه لـ</th>
+                    <th>المدة</th>
+                    <th>حذف</th>
+                </tr>
+            </thead>
+            <tbody id="playlistList"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // ⚙️ إعدادات الربط
+    const SUPABASE_URL = 'https://omjfsqwtaoyinfteqhqh.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tamZzcXd0YW95aW5mdGVxaHFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MDI2ODAsImV4cCI6MjA4NTM3ODY4MH0._2OGGOMW6YUctrCyk-neskR0F7fGadlW79BmPrkyJXM';
+    
+    // ✅ إنشاء العميل (تغيير الاسم إلى sb)
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // 1️⃣ جلب الشاشات وتحديثها تلقائياً
+    async function fetchScreens() {
+        const { data, error } = await sb.from('screens').select('*').order('last_ping', { ascending: false });
+        if (error) console.error('Error fetching screens:', error);
+        renderScreens(data || []);
+        updateTargetSelect(data || []);
+    }
+
+    function renderScreens(screens) {
+        const tbody = document.getElementById('screensList');
+        tbody.innerHTML = '';
+        screens.forEach(s => {
+            const isLinked = s.status === 'linked';
+            const statusClass = isLinked ? 'status-linked' : 'status-pending';
+            const statusText = isLinked ? 'متصل ومفعل ✅' : 'بانتظار الموافقة ⏳';
+            
+            const actionBtn = isLinked 
+                ? `<button class="btn-delete" onclick="updateScreenStatus('${s.device_id}', 'pending')">إيقاف</button>`
+                : `<button class="btn-approve" onclick="updateScreenStatus('${s.device_id}', 'linked')">تفعيل</button>`;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${s.device_id}</td>
+                    <td>${s.ip_address}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td>${new Date(s.last_ping).toLocaleTimeString()}</td>
+                    <td>${actionBtn}</td>
+                </tr>
+            `;
+        });
+    }
+
+    async function updateScreenStatus(id, status) {
+        await sb.from('screens').update({ status: status }).eq('device_id', id);
+        fetchScreens();
+    }
+
+    function updateTargetSelect(screens) {
+        const select = document.getElementById('targetScreen');
+        select.innerHTML = '<option value="all">عرض على كل الشاشات</option>';
+        screens.forEach(s => {
+            select.innerHTML += `<option value="${s.device_id}">شاشة: ${s.device_id}</option>`;
+        });
+    }
+
+    // 2️⃣ رفع الملفات
+    async function uploadContent() {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+        if (!file) return alert('الرجاء اختيار ملف!');
+
+        const statusLabel = document.getElementById('uploadStatus');
+        statusLabel.innerText = 'جاري الرفع... ⏳';
+
+        try {
+            const fileName = Date.now() + '_' + file.name.replace(/\s/g, '_');
+            const { data, error } = await sb.storage.from('media').upload(fileName, file);
+            
+            if (error) throw error;
+
+            const { data: { publicUrl } } = sb.storage.from('media').getPublicUrl(fileName);
+
+            const type = document.getElementById('fileType').value;
+            const duration = document.getElementById('duration').value;
+            const target = document.getElementById('targetScreen').value;
+
+            await sb.from('playlist').insert({
+                url: publicUrl,
+                type: type,
+                duration: parseInt(duration),
+                target_screen_id: target
+            });
+
+            statusLabel.innerText = 'تم الرفع بنجاح! ✅';
+            fileInput.value = '';
+            fetchPlaylist();
+
+        } catch (err) {
+            console.error(err);
+            statusLabel.innerText = 'فشل الرفع: ' + err.message;
+        }
+    }
+
+    // 3️⃣ إدارة قائمة التشغيل
+    async function fetchPlaylist() {
+        const { data } = await sb.from('playlist').select('*').order('created_at', { ascending: false });
+        const tbody = document.getElementById('playlistList');
+        tbody.innerHTML = '';
+        if(data) {
+            data.forEach(item => {
+                let preview = item.type === 'image' 
+                    ? `<img src="${item.url}" height="50">` 
+                    : `<a href="${item.url}" target="_blank">🎥 تشغيل الفيديو</a>`;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.type}</td>
+                        <td>${preview}</td>
+                        <td>${item.target_screen_id === 'all' ? 'الكل' : item.target_screen_id}</td>
+                        <td>${item.duration}ms</td>
+                        <td><button class="btn-delete" onclick="deleteItem('${item.id}')">حذف</button></td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    async function deleteItem(id) {
+        if(confirm('هل أنت متأكد من حذف هذا المحتوى؟')) {
+            await sb.from('playlist').delete().eq('id', id);
+            fetchPlaylist();
+        }
+    }
+
+    // 4️⃣ دوال شريط الأخبار (المصححة)
+    async function updateTicker() {
+        const text = document.getElementById('newsInput').value;
+        if (!text) return;
+        await sb.from('settings').upsert({ key: 'news_ticker', value: text });
+        alert('تم تحديث النص! 📢');
+    }
+
+    async function toggleTickerVisibility() {
+        const isVisible = document.getElementById('tickerToggle').checked;
+        // نرسل القيمة كنص 'true' أو 'false'
+        await sb.from('settings').upsert({ key: 'show_ticker', value: isVisible.toString() });
+    }
+
+    // دالة لجلب حالة الشريط عند فتح الصفحة
+    async function fetchSettings() {
+        const { data } = await sb.from('settings').select('*');
+        if (data) {
+            const showSetting = data.find(item => item.key === 'show_ticker');
+            const newsSetting = data.find(item => item.key === 'news_ticker');
+
+            if (showSetting) {
+                document.getElementById('tickerToggle').checked = (showSetting.value === 'true');
+            }
+            if (newsSetting) {
+                document.getElementById('newsInput').value = newsSetting.value;
+            }
+        }
+    }
+
+    // 5️⃣ Realtime Listeners
+    sb.channel('admin-dashboard')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'screens' }, fetchScreens)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'playlist' }, fetchPlaylist)
+        .subscribe();
+
+    // تشغيل الدوال عند فتح الصفحة
+    fetchScreens();
+    fetchPlaylist();
+    fetchSettings(); // ✅ تشغيل دالة الإعدادات
+
+</script>
+
+</body>
+</html>
